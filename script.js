@@ -14,6 +14,9 @@ this is a *paragraph* of text
 
 this is another **paragraph** of text
 
+
+![this is an image](https://via.placeholder.com/150) and some text after the image
+
 this is [google](https://www.google.com)
 
 ## this is an h2
@@ -29,6 +32,7 @@ more paragraphs
 - here's a point I'd like to make
 - and another one
 - aaaand another one
+
 
 
 `
@@ -85,7 +89,7 @@ for (let [lineIdx, line] of lines.entries()) {
     output += '</blockquote>'
 
   }
-
+  //unordered lists
   else if (line[inputIdx] == "-") {
 
 
@@ -192,6 +196,36 @@ for (let [lineIdx, line] of lines.entries()) {
       }
 
 
+
+      //images
+
+      if (line[i] == "!") {
+        let link = ""
+
+        let content = ""
+
+        //get content inside []
+        let j = i + 2
+        while (line[j] != "]") {
+
+          content += line[j]
+          j++
+        }
+
+        //get link inside ()
+        j = j + 2
+
+        while (line[j] != ")") {
+
+          link += line[j]
+          j++
+        }
+
+        i = j + 1
+
+
+        output += "<img src=" + link + "alt=" + content + "/>"
+      }
 
 
 
