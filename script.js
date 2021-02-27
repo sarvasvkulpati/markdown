@@ -9,7 +9,7 @@ let input = `
 
 # this is a header
 
-this is a paragraph of text
+this is a *paragraph* of text
 
 
 this is another paragraph of text
@@ -71,6 +71,25 @@ for (line of lines) {
 
     output += '<p>'
     for (i = 0; i < line.length; i++) {
+
+      if(line[i] == "*"){
+        output += '<i>'
+
+        let j = i + 1
+        while(line[j] != "*") {
+          output += line[j]
+          j++ 
+        }
+
+        output += '</i>'
+
+        i = j+1
+
+
+      }
+
+
+
       output += line[i]
     }
     output += '</p>'
