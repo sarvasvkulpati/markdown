@@ -5,23 +5,39 @@ h1-6
 */
 
 
-/*
-
-*/
-
 let input = "# lalala"
+
+let inputIdx = 0
+
 
 
 output = ""
 
 
 
-if(input[0] = "#"){
-  output += '<h1>'
-  for(i = 1; i < input.length; i++) {
+let headerType = 1
+
+
+if(input[inputIdx] = "#"){
+
+  if (input[inputIdx + 1] == "#"){
+    headerType++ 
+
+    if (input[inputIdx + 2] == "#"){
+      headerType++
+    }
+  }
+  
+
+
+  output += '<h' + headerType + '>'
+  for(i = headerType; i < input.length; i++) {
     output += input[i]
   }
-  output += '</h1>'
+  output += '</h' + headerType + '>'
+
+
+
 }
 
 
