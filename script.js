@@ -23,7 +23,13 @@ this is [google](https://www.google.com)
 
 more paragraphs
 
-> to be or not to be a pencil
+> to be or not to be a pencil - Gandhi
+
+
+- here's a point I'd like to make
+- and another one
+- aaaand another one
+
 
 `
 
@@ -39,7 +45,7 @@ output = ""
 
 
 
-for (line of lines) {
+for (let [lineIdx, line] of lines.entries()) {
   let inputIdx = 0
   let headerType = 1
 
@@ -67,17 +73,41 @@ for (line of lines) {
     }
     output += '</h' + headerType + '>'
   }
-  else if(line[inputIdx] == ">"){
+  // blockquotes
+  else if (line[inputIdx] == ">") {
 
     output += '<blockquote>'
 
-    for(i = 1; i < line.length; i ++){
+    for (i = 1; i < line.length; i++) {
       output += line[inputIdx + i]
     }
 
     output += '</blockquote>'
 
   }
+
+  else if (line[inputIdx] == "-") {
+
+
+    if (lines[lineIdx - 1] ?.[0] != "-") {
+      output += '<ul>'
+    }
+
+
+    output += '<li>'
+
+    for (i = 1; i < line.length; i++) {
+      output += line[inputIdx + i]
+    }
+    output += '</li>'
+
+
+    if (lines[lineIdx + 1] ?.[0] != "-") {
+      output += '</ul>'
+    }
+
+
+  } 
 
 
   //paragraphs
@@ -90,7 +120,7 @@ for (line of lines) {
 
 
     for (i = 0; i < line.length; i++) {
-      
+
 
       //strong and italic tags
       if (line[i] == "*") {
