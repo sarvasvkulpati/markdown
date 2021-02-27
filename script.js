@@ -12,7 +12,9 @@ let input = `
 this is a *paragraph* of text
 
 
-this is another paragraph of text
+this is another **paragraph** of text
+
+this is [google](https://www.google.com)
 
 ## this is an h2
 ### this is an h3
@@ -20,6 +22,8 @@ this is another paragraph of text
 # another header
 
 more paragraphs
+
+> to be or not to be a pencil
 
 `
 
@@ -58,10 +62,21 @@ for (line of lines) {
 
     output += '<h' + headerType + '>'
     for (i = headerType; i < line.length; i++) {
-      console.log(line[i])
+
       output += line[i]
     }
     output += '</h' + headerType + '>'
+  }
+  else if(line[inputIdx] == ">"){
+
+    output += '<blockquote>'
+
+    for(i = 1; i < line.length; i ++){
+      output += line[inputIdx + i]
+    }
+
+    output += '</blockquote>'
+
   }
 
 
@@ -70,28 +85,94 @@ for (line of lines) {
   else {
 
     output += '<p>'
+
+
+
+
     for (i = 0; i < line.length; i++) {
+      
 
-      if(line[i] == "*"){
-        output += '<i>'
+      //strong and italic tags
+      if (line[i] == "*") {
 
+
+
+        if (line[i + 1] == "*") {
+
+          //strong tags
+          i += 1
+
+          output += '<strong>'
+
+          let j = i + 1
+          while (line[j] != "*") {
+            output += line[j]
+            j++
+          }
+
+          output += '</strong>'
+
+          i = j + 2
+
+        } else {
+          //italic tags
+          output += '<i>'
+
+          let j = i + 1
+          while (line[j] != "*") {
+            output += line[j]
+            j++
+          }
+
+          output += '</i>'
+
+          i = j + 1
+
+        }
+      }
+
+
+      //links
+      if (line[i] == "[") {
+        let link = ""
+
+        let content = ""
+
+        //get content inside []
         let j = i + 1
-        while(line[j] != "*") {
-          output += line[j]
-          j++ 
+        while (line[j] != "]") {
+
+          content += line[j]
+          j++
         }
 
-        output += '</i>'
+        //get link inside ()
+        j = j + 2
 
-        i = j+1
+        while (line[j] != ")") {
+
+          link += line[j]
+          j++
+        }
+
+        i = j + 1
 
 
+        output += "<a href=" + link + "/>" + content + "</a>"
       }
 
 
 
-      output += line[i]
+
+
+      if (line[i]) {
+        output += line[i]
+      }
+
     }
+
+
+
     output += '</p>'
 
   }
