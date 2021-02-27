@@ -5,9 +5,27 @@ h1-6
 */
 
 
-let input = "# lalala"
+let input = `
 
-let inputIdx = 0
+# this is a header
+
+this is a paragraph of text
+
+
+this is another paragraph of text
+
+## this is an h2
+### this is an h3
+
+# another header
+
+more paragraphs
+
+`
+
+let lines = input.match(/[^\r\n]+/g)
+
+
 
 
 
@@ -15,36 +33,53 @@ output = ""
 
 
 
-let headerType = 1
 
 
-if(input[inputIdx] = "#"){
+for (line of lines) {
+  let inputIdx = 0
+  let headerType = 1
 
-  if (input[inputIdx + 1] == "#"){
-    headerType++ 
 
-    if (input[inputIdx + 2] == "#"){
+
+  //headers
+  if (line[inputIdx] == "#") {
+
+
+
+    if (line[inputIdx + 1] == "#") {
       headerType++
+
+      if (line[inputIdx + 2] == "#") {
+        headerType++
+      }
     }
-  }
-  
 
 
-  output += '<h' + headerType + '>'
-  for(i = headerType; i < input.length; i++) {
-    output += input[i]
+
+    output += '<h' + headerType + '>'
+    for (i = headerType; i < line.length; i++) {
+      console.log(line[i])
+      output += line[i]
+    }
+    output += '</h' + headerType + '>'
   }
-  output += '</h' + headerType + '>'
+
+
+  //paragraphs
+
+  else {
+
+    output += '<p>'
+    for (i = 0; i < line.length; i++) {
+      output += line[i]
+    }
+    output += '</p>'
+
+  }
 
 
 
 }
-
-
-
-
-
-console.log(output)
 
 
 
@@ -95,7 +130,7 @@ document.getElementById('root').innerHTML = output
 //           return 'STRONG'
 
 //         break
-      
+
 //       default:
 
 //     }
