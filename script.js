@@ -5,43 +5,55 @@ h1-6
 */
 
 
+// let input = `
+
+// # this is a header
+// this is a *paragraph* of text
+// this is another **paragraph** of text
+// ![this is an image](https://via.placeholder.com/150) and some text after the image
+// this is [   google    ](https://www.google.com)
+// ## this is an h2
+// ### this is an h3
+// # another header
+// <b>inline html</b>
+// more paragraphs
+// > to be or not to be a pencil - Gandhi
+// - here's a point I'd like to make
+// - and another one
+// - aaaand another one
+//   - this is an indented point
+
+
+
+// `
+
 let input = `
 
 # this is a header
 
 this is a *paragraph* of text
 
-
 this is another **paragraph** of text
-
 
 ![this is an image](https://via.placeholder.com/150) and some text after the image
 
 this is [   google    ](https://www.google.com)
 
+
+- so yeah
+- this is a point
+
+
 ## this is an h2
 ### this is an h3
-
 # another header
-
-
-
-
 <b>inline html</b>
-
-
 more paragraphs
-
 > to be or not to be a pencil - Gandhi
-
 
 - here's a point I'd like to make
 - and another one
 - aaaand another one
-  - this is an indented point
-
-
-
 
 `
 
@@ -115,10 +127,10 @@ class LineReader {
 
 
 function getIndent(line) {
-  
+
   indentLevel = line.search(/\S|$/)
 
-  console.log(indentLevel)
+
 
   return indentLevel
 }
@@ -144,7 +156,7 @@ function tokenizeLine(line) {
 
   let indentLevel = getIndent(line)
 
-  for(let i = 0; i <indentLevel; i++){
+  for (let i = 0; i < indentLevel; i++) {
     result.push('INDENT')
   }
 
@@ -154,7 +166,7 @@ function tokenizeLine(line) {
 
 
 
-  
+
 
   for (let i = 0; i < 6; i++) {
     if (line[i] == "#") {
@@ -162,7 +174,7 @@ function tokenizeLine(line) {
     }
   }
 
-  
+
 
 
   switch (firstChar) {
@@ -191,7 +203,7 @@ function tokenizeLine(line) {
 
   //paragraph
 
-// the funky headerLevel thing is to skip the first space if a header is present
+  // the funky headerLevel thing is to skip the first space if a header is present
   for (let i = 0 + (headerLevel > 0 ? headerLevel + 1 : 0); i < line.length; i++) {
 
     let char = line[i]
@@ -201,8 +213,10 @@ function tokenizeLine(line) {
 
         if (line[i + 1] == "*") {     // peek forward one
 
-          result.push(text)
-          text = ""             //push and refresh text cache
+          if (text.length != 0) {
+            result.push(text)
+            text = ""             //push and refresh text cache
+          }
 
 
           result.push('STRONG')
@@ -210,8 +224,10 @@ function tokenizeLine(line) {
         }
 
         else {
-          result.push(text)
-          text = ""             //refresh text cache
+          if (text.length != 0) {
+            result.push(text)
+            text = ""             //push and refresh text cache
+          }
 
           result.push('ITALIC')
         }
@@ -221,15 +237,21 @@ function tokenizeLine(line) {
         break;
 
       case "[":
-        result.push(text)
-        text = ""             //push and refresh text cache
+
+        if (text.length != 0) {
+          result.push(text)
+          text = ""             //push and refresh text cache
+        }
+
 
         result.push('OPEN_BRACKET')
         break;
 
       case "]":
-        result.push(text.trim()) //remove whitespace around (but not inside) string if it's inside a link
-        text = ""             //push and refresh text cache
+        if (text.length != 0) {
+          result.push(text.trim())
+          text = ""             //push and refresh text cache
+        }
 
 
         result.push('CLOSE_BRACKET')
@@ -263,34 +285,358 @@ function tokenizeLine(line) {
 
 
   }
-  result.push(text)
+  if (text.length != 0) {
+    result.push(text)
+  }
+
   return (result)
 }
 
 
 // console.log(tokenizeLine('this is a *paragraph* of text'))
 
-console.log(tokenize(input))
+tokens = tokenize(input)
+
+
+specialTokens = ['HEADER_1',
+  'HEADER_2',
+  'HEADER_3',
+  'HEADER_4',
+  'HEADER_5',
+  'HEADER_6',
+  'ITALIC',
+  'STRONG',
+  'EXCLAMATION',
+  'OPEN_BRACKET',
+  'CLOSE_BRACKET',
+  'OPEN_PARENTHESIS',
+  'CLOSE_PARENTHESIS',
+  'LIST_ITEM',
+  'BLOCKQUOTE',
+  'INDENT']
+
+
+
+function isText(string) {
+  return !specialTokens.some(token => string.includes(token))
+
+}
 
 
 
 
-function parse(tokens) {
-  // header + text
 
 
-  // italic + text + italic
 
-  // strong + text + strong
+console.log(tokens)
+
+// use logic from below but with tokens, use a switch statement for first char
+
+class Tree {
+  constructor(value) {
+    this.value = value
+    this.children = [];
+  }
 
 
-  // exclamation + OPEN_BRACKET + text + CLOSE_BRACKET + OPEN_PARENTHESIS + text + CLOSE_PARENTHESIS
 
-  // OPEN_BRACKET + text + CLOSE_BRACKET + OPEN_PARENTHESIS + text + CLOSE_PARENTHESIS
 
-  // BLOCKQUOTE + text
 
-  // LIST_ITEM + text
+
+}
+
+
+
+//LINUS read this
+
+function parseLines(tokenizedLines) {
+  let output = { value: 'html', children: [] }
+
+
+
+
+
+  let listNode = { value: 'ul', children: [] }
+
+  for (let i = 0; i < tokenizedLines.length; i++) {
+
+    let node = { value: '', children: [] }
+
+
+    let line = tokenizedLines[i]
+
+
+    let styleNode = { value: '', children: [] }
+
+    let inBrackets = false
+    let inParentheses = false
+
+    let inList = false
+
+    for (let i = 0; i < line.length; i++) {
+
+      //based on the first token, what kind of node is the line?
+      if (i == 0) {
+
+
+
+
+
+        if (line[i].includes('HEADER_')) {
+          let headerLevel = line[i][line[i].length - 1]
+
+          node.value = 'h' + headerLevel
+          continue;
+        }
+
+        switch (line[i]) {
+          case 'BLOCKQUOTE':
+            node.value = 'blockquote'
+            continue;
+
+          case 'LIST_ITEM':
+            inList = true
+            continue;
+
+          default:
+            node.value = 'p'
+            break;
+        }
+
+      }
+
+
+      console.log(listNode.children, inList)
+      if (listNode.children.length > 0 && inList == false) {
+
+
+        output.children.push({ ...listNode })
+        listNode.children = []
+
+      }
+
+
+
+      switch (line[i]) {
+        case 'ITALIC':
+
+          if (styleNode.value == 'i') {
+
+            node.children.push({ ...styleNode })
+            styleNode = { value: '', children: [] }
+
+          } else {
+            styleNode.value = 'i'
+
+          }
+
+          break;
+
+        case 'STRONG':
+
+          if (styleNode.value == 'strong') {
+            node.children.push({ ...styleNode })
+            styleNode = { value: '', children: [] }
+
+          } else {
+            styleNode.value = 'strong'
+
+          }
+
+          break;
+
+
+        case 'EXCLAMATION':
+
+          styleNode.value = 'img'
+
+
+          break;
+
+
+        case 'OPEN_BRACKET':
+          inBrackets = true
+          if (styleNode.value != 'img') {
+            styleNode.value = 'a'
+          }
+
+          break;
+
+        case 'CLOSE_BRACKET':
+          inBrackets = false
+          break;
+
+        case 'OPEN_PARENTHESIS':
+          inParentheses = true
+          break;
+
+        case 'CLOSE_PARENTHESIS':
+          inParentheses = false
+          node.children.push({ ...styleNode })
+          styleNode = { value: '', children: [] }
+
+          break;
+
+
+        default:
+
+          if (styleNode.value != '') {
+
+            switch (styleNode.value) {
+              case 'img':
+
+                if (inBrackets) {
+                  styleNode.alt = line[i]
+
+                } else if (inParentheses) {
+                  styleNode.src = line[i]
+
+                }
+                break;
+
+              case 'a':
+                if (inBrackets) {
+                  styleNode.children = line[i]
+                } else if (inParentheses) {
+                  styleNode.href = line[i]
+                }
+
+                break;
+
+
+
+
+
+              default:
+                styleNode.children.push(line[i])
+                break;
+            }
+          } else if (inList) {
+
+
+
+            listNode.children.push(line[i])
+            inList = false
+            continue;
+
+          } else {
+            node.children.push(line[i])
+          }
+
+          break;
+      }
+    }
+
+
+
+
+    if (listNode.children.length == 0) {
+      output.children.push(node)
+    }
+
+
+
+
+
+  }
+
+  if (listNode.children.length > 0) {
+
+
+    output.children.push({ ...listNode })
+    listNode.children = []
+
+  }
+
+  console.log(JSON.stringify(output, null, 2))
+
+}
+
+parseLines(tokens)
+
+
+
+
+
+
+
+
+
+// function makeTree(tokens, prevTree = null, prevDelimiter = "", isPrevText = false) {
+
+
+//   if (isPrevText) {
+//     root.children.push(prevTree)
+//   }
+
+//   switch (tokens[0]) {
+
+//     case "HEADER_1":
+//       let headerTree = new Tree('HEADER_1')
+
+
+//       tokens.shift()
+//       makeTree(tokens, headerTree, '', false )
+//       break;
+
+//     default:
+//       if (prevTree) {
+//         prevTree.children.push(tokens[0])
+
+
+//         tokens.shift()
+
+//         makeTree(tokens, prevTree, '', true)
+//       } else {
+
+
+//         let pTree = new Tree('paragraph')
+//         pTree.children.push(tokens[0])
+
+
+//       }
+
+//   }
+
+
+
+// }
+
+
+function makeTree(tokens) {
+  let root = new Tree('html')
+
+  let i = 0
+
+  while (tokens[i + 1]) {
+    currentToken = tokens[i]
+    nextToken = tokens[i + 1]
+
+
+    switch (currentToken) {
+      case 'HEADER_1':
+        let headerTree = new Tree('HEADER_1')
+        headerTree.children.push(nextToken)
+        root.children.push(headerTree)
+        i++
+        break;
+
+      default:
+        let pTree = new Tree('paragraph')
+
+        pTree.children.push(currentToken)
+
+        if (isText(nextToken)) {
+          root.children.push(pTree)
+        }
+
+    }
+
+
+  }
+
+
+  return root
 }
 
 
@@ -302,6 +648,14 @@ function parse(tokens) {
 
 
 
+
+
+
+
+
+
+
+// this is the functional code
 
 for (let [lineIdx, line] of lines.entries()) {
   let inputIdx = 0
@@ -466,9 +820,9 @@ for (let [lineIdx, line] of lines.entries()) {
 }
 
 
-
 document.getElementById('root').innerHTML = output
 
+// document.getElementById('root').innerHTML = newOutput
 
 
 
