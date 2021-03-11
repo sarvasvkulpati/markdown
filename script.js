@@ -30,31 +30,9 @@ h1-6
 
 let input = `
 
-# this is a header
-
-this is a *paragraph* of text
-
-this is another **paragraph** of text
-
-![this is an image](https://via.placeholder.com/150) and some text after the image
-
-this is [   google    ](https://www.google.com)
-
-## this is an h2
-### this is an h3
-# another header
-
-<b>inline html</b>
+this is a para with ** some strong text and * some italic too* **
 
 
-> to be or not to be a pencil - Gandhi
-
-- here's a point I'd like to make
-- and another one
-- aaaand another one
-
-
-test line
 `
 
 
@@ -84,6 +62,10 @@ class Reader {
     return this.idx < this.line.length
   }
 
+
+  readUntil(token){
+
+  }
 
   isFirst() {
 
@@ -354,7 +336,7 @@ class Parser {
 
   parseListItem() {
     this.tokenReader.next() //skip LIST_ITEM
-    let text = this.parseText()
+    let text = this.parseTextLine()
 
     return {
       node: 'element',
@@ -395,7 +377,7 @@ class Parser {
     return {
       node: 'element',
       tag: 'h' + headerLevel,
-      children: [this.parseText()]
+      children: [this.parseTextNode()]
     }
   }
 
@@ -404,33 +386,16 @@ class Parser {
     let node = {
       node: 'element',
       tag: 'p',
-      children: []
+      children: this.parseTextLine()
     }
 
-    while (this.tokenReader.hasNext()) {
-      let peekNext = this.tokenReader.peek()
-      console.log(peekNext)
 
-
-      if (peekNext == 'ITALIC') {
-        node.children.push(this.parseItalic())
-      } else if (peekNext == 'STRONG') {
-        node.children.push(this.parseStrong())
-      } else if (peekNext == 'EXCLAMATION') {
-        node.children.push(this.parseImage())
-      } else if (peekNext == 'OPEN_BRACKET') {
-        node.children.push(this.parseHyperlink())
-      } else {
-        node.children.push(this.parseText())
-      }
-
-    }
     return node
   }
 
   parseBlockquote() {
     this.tokenReader.next() // skip BLOCKQUOTE
-    let text = this.parseText()
+    let text = this.parseTextLine()
 
     return {
       node: 'element',
@@ -442,7 +407,7 @@ class Parser {
   parseHyperlink() {
     this.tokenReader.next() // skip OPEN_BRACKET
 
-    let text = this.parseText()
+    let text = this.parseTextLine()
 
     this.tokenReader.next() // skip CLOSE_BRACKET
     this.tokenReader.next() // skip OPEN_PARENTHESIS
@@ -465,43 +430,84 @@ class Parser {
   parseItalic() {
 
     this.tokenReader.next() //skip the ITALIC delimiter
-    let text = this.parseText()
+
+    let children = []
+    while(this.tokenReader.peek() != 'ITALIC'){
+        children = this.parseTextLine('ITALIC')
+    }
+
+
+    
     this.tokenReader.next() //skip the ITALIC delimiter
 
     return {
       node: 'element',
       tag: 'i',
-      children: [text]
+      children: children
     }
   }
 
 
   parseStrong() {
 
-    this.tokenReader.next() //skip the ITALIC delimiter
-    let text = this.parseText()
-    this.tokenReader.next() //skip the ITALIC delimiter
+    this.tokenReader.next() //skip the STRONG delimiter
+
+    let children = []
+    while(this.tokenReader.peek() != 'STRONG'){
+        children = this.parseTextLine('STRONG')
+    }
+
+
+    
+    this.tokenReader.next() //skip the STRONG delimiter
 
     return {
       node: 'element',
       tag: 'strong',
-      children: [text]
+      children: children
     }
   }
 
 
 
   //returns a single textNode
-  parseText() {
+  parseTextNode() {
     let next = this.tokenReader.next()
-
-
     return {
       node: 'text',
       text: next
     }
-
   }
+
+
+  parseTextLine(until = "") {
+
+    let elements = []
+
+    while (this.tokenReader.hasNext() && this.tokenReader.peek() != until ) {
+      
+      let peekNext = this.tokenReader.peek()
+      
+
+
+      if (peekNext == 'ITALIC') {
+        elements.push(this.parseItalic())
+      } else if (peekNext == 'STRONG') {
+        elements.push(this.parseStrong())
+      } else if (peekNext == 'EXCLAMATION') {
+        elements.push(this.parseImage())
+      } else if (peekNext == 'OPEN_BRACKET') {
+        elements.push(this.parseHyperlink())
+      } else {
+
+        elements.push(this.parseTextNode())
+      }
+
+    }
+
+    return elements
+  }
+
 
 }
 
@@ -522,7 +528,7 @@ function parseDomNodes(tree) {
 
   let children = ''
   if (tree.children) {
-   
+
     children = tree.children.map(child => parseDomNodes(child)).join('')
   }
 
@@ -537,7 +543,7 @@ function parseDomNodes(tree) {
 
   if (tree.node == 'element') {
     let tag = tree.tag
-    let open = `<${tag} ${attributes}>`
+    let open = `<${tag}${attributes}>`
     let close = `</${tag}>`
 
     return open + children + close
