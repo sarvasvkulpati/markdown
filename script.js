@@ -7,22 +7,25 @@ h1-6
 
 // let input = `
 
-// # this is a header
-// this is a *paragraph* of text
-// this is another **paragraph** of text
-// ![this is an image](https://via.placeholder.com/150) and some text after the image
-// this is [   google    ](https://www.google.com)
-// ## this is an h2
-// ### this is an h3
-// # another header
-// <b>inline html</b>
-// more paragraphs
-// > to be or not to be a pencil - Gandhi
-// - here's a point I'd like to make
-// - and another one
-// - aaaand another one
-//   - this is an indented point
 
+/*
+# this is a header
+this is a *paragraph* of text
+this is another **paragraph** of text
+![this is an image](https://via.placeholder.com/150) and some text after the image
+this is [   google    ](https://www.google.com)
+## this is an h2
+### this is an h3
+# another header
+<b>inline html</b>
+more paragraphs
+> to be or not to be a pencil - Gandhi
+- here's a point I'd like to make
+- and another one
+- aaaand another one
+  - this is an indented point
+  
+  */
 
 
 // `
@@ -30,8 +33,21 @@ h1-6
 
 let input = `
 
-this is a para with ** some strong text and * some italic too* **
-
+# this is a header
+this is a *paragraph* of text
+this is another **paragraph** of text
+![this is an image](https://via.placeholder.com/150) and some text after the image
+this is [   google    ](https://www.google.com)
+## this is an h2
+### this is an h3
+# another header
+<b>inline html</b>
+more paragraphs
+> to be or not to be a pencil - Gandhi
+- here's a point I'd like to make
+- and *another* one
+- aaaand **another** one
+  - this is an indented point
 
 `
 
@@ -341,7 +357,7 @@ class Parser {
     return {
       node: 'element',
       tag: 'li',
-      children: [text]
+      children: text
     }
 
   }
@@ -400,14 +416,14 @@ class Parser {
     return {
       node: 'element',
       tag: 'blockquote',
-      children: [text]
+      children: text
     }
   }
 
   parseHyperlink() {
     this.tokenReader.next() // skip OPEN_BRACKET
 
-    let text = this.parseTextLine()
+    let text = this.parseTextLine('CLOSE_BRACKET')
 
     this.tokenReader.next() // skip CLOSE_BRACKET
     this.tokenReader.next() // skip OPEN_PARENTHESIS
@@ -421,7 +437,7 @@ class Parser {
       node: 'element',
       tag: 'a',
       attributes: { href: href },
-      children: [text]
+      children: text
     }
   }
 
@@ -530,6 +546,7 @@ function parseDomNodes(tree) {
   if (tree.children) {
 
     children = tree.children.map(child => parseDomNodes(child)).join('')
+    console.log(children)
   }
 
   let attributes = ''
@@ -543,9 +560,11 @@ function parseDomNodes(tree) {
 
   if (tree.node == 'element') {
     let tag = tree.tag
-    let open = `<${tag}${attributes}>`
+    let open = `<${tag} ${attributes}>`
     let close = `</${tag}>`
 
+
+    // console.log('children:',children)
     return open + children + close
   }
 
@@ -564,7 +583,7 @@ function parseDomNodes(tree) {
 
 
 
-console.log(parseDomNodes(nodes))
+// console.log(parseDomNodes(nodes))
 
 
 
