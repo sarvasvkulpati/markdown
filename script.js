@@ -32,22 +32,13 @@ more paragraphs
 
 
 let input = `
-
-# this is a header
-this is a *paragraph* of text
-this is another **paragraph** of text
-![this is an image](https://via.placeholder.com/150) and some text after the image
-this is [   google    ](https://www.google.com)
-## this is an h2
-### this is an h3
-# another header
-<b>inline html</b>
-more paragraphs
-> to be or not to be a pencil - Gandhi
 - here's a point I'd like to make
 - and *another* one
 - aaaand **another** one
   - this is an indented point
+    - this is another
+  - this is asinad
+    - this is asindad
 
 `
 
@@ -79,13 +70,28 @@ class Reader {
   }
 
 
-  readUntil(token){
+  reset() {
+    this.idx = 0
+  }
 
+
+  // only works with chars, not token lists
+  readUntilText() {
+    let text = ""
+
+    while (this.hasNext() && this.peek() == " ") {
+      text += this.next()
+    }
+    return text
   }
 
   isFirst() {
 
     return this.idx == 1
+  }
+
+  isFirstNonWhitespace() {
+    return this.line.slice(0, this.idx - 1).split('').every(val => val == ' ')
   }
 
 }
@@ -99,10 +105,8 @@ class LineReader {
     this.idx = 0
   }
 
-  prev() {
-    if (idx > 0) {
-      return this.lines[this.idx - 1]
-    }
+  backtrack() {
+    this.idx--
   }
 
   peek(k = 0) {
@@ -178,8 +182,29 @@ function tokenize(content) {
 
       switch (next) {
 
+        case ' ':
+
+
+          if (reader.isFirst()) {
+            let indent = reader.readUntilText()
+            tokens.push(indent)
+
+            //TODO now indented lines don't work because reader.isFirst isn't true for the LIST_ITEM of a line with spaces in front of it
+          }
+          else {
+            text += next
+          }
+
+          break;
+
         case '-':
-          pushIfFirst(next, 'LIST_ITEM')
+
+          if (reader.isFirstNonWhitespace()) {
+            tokens.push('LIST_ITEM')
+          } else {
+            text += token
+          }
+
           break;
 
         case '>':
@@ -263,7 +288,7 @@ function tokenize(content) {
 tokenLines = tokenize(input)
 
 
-console.log(tokenLines)
+
 
 
 class Parser {
@@ -330,16 +355,37 @@ class Parser {
     let listItems = []
 
 
-    listItems.push(this.parseListItem())
+    let [firstIndentLevel, firstNode] = this.parseListItem()
 
-    while (this.tokenLineReader.hasNext() && this.tokenLineReader.peek()[0] == 'LIST_ITEM') {
 
+    listItems.push(firstNode)
+
+
+    while (this.tokenLineReader.hasNext() && (this.tokenLineReader.peek()[0] == 'LIST_ITEM' || this.tokenLineReader.peek()[1] == 'LIST_ITEM')) {
+      console.log(this.tokenLineReader.peek())
       this.tokenReader = new Reader(this.tokenLineReader.next())
 
-      if (this.tokenReader.peek() == 'LIST_ITEM') {
 
-        listItems.push(this.parseListItem())
+      let [indentLevel, node] = this.parseListItem()
+
+
+      if (indentLevel > firstIndentLevel) {
+        this.tokenReader.reset()
+        listItems.push(this.parseList())
+      } else if (indentLevel < firstIndentLevel) {
+        this.tokenLineReader.backtrack()
+        return {
+          node: 'element',
+          tag: 'ul',
+          children: listItems
+        }
+      } else {
+        listItems.push(node)
       }
+
+
+
+
     }
 
 
@@ -351,14 +397,29 @@ class Parser {
   }
 
   parseListItem() {
-    this.tokenReader.next() //skip LIST_ITEM
-    let text = this.parseTextLine()
 
-    return {
+    let indentLevel = 0
+
+    const next = this.tokenReader.next() //this is either LIST_ITEM or an indent
+
+
+    //if the first element is an indent
+    if (next.trim().length == 0) {
+
+      indentLevel = next.length   //get the indentLevel
+      this.tokenReader.next()
+    } //otherwise we don't care, LIST_ITEM has been skipped
+
+
+
+    let text = this.parseTextLine()
+    console.log('text', text)
+
+    return [indentLevel, {
       node: 'element',
       tag: 'li',
       children: text
-    }
+    }]
 
   }
 
@@ -448,12 +509,12 @@ class Parser {
     this.tokenReader.next() //skip the ITALIC delimiter
 
     let children = []
-    while(this.tokenReader.peek() != 'ITALIC'){
-        children = this.parseTextLine('ITALIC')
+    while (this.tokenReader.peek() != 'ITALIC') {
+      children = this.parseTextLine('ITALIC')
     }
 
 
-    
+
     this.tokenReader.next() //skip the ITALIC delimiter
 
     return {
@@ -469,12 +530,12 @@ class Parser {
     this.tokenReader.next() //skip the STRONG delimiter
 
     let children = []
-    while(this.tokenReader.peek() != 'STRONG'){
-        children = this.parseTextLine('STRONG')
+    while (this.tokenReader.peek() != 'STRONG') {
+      children = this.parseTextLine('STRONG')
     }
 
 
-    
+
     this.tokenReader.next() //skip the STRONG delimiter
 
     return {
@@ -500,10 +561,10 @@ class Parser {
 
     let elements = []
 
-    while (this.tokenReader.hasNext() && this.tokenReader.peek() != until ) {
-      
+    while (this.tokenReader.hasNext() && this.tokenReader.peek() != until) {
+
       let peekNext = this.tokenReader.peek()
-      
+
 
 
       if (peekNext == 'ITALIC') {
@@ -588,183 +649,3 @@ function parseDomNodes(tree) {
 
 
 document.getElementById('root').innerHTML = parseDomNodes(nodes)
-
-
-
-
-
-
-
-
-
-
-
-
-lines = input.match(/[^\r\n]+/g)
-
-let output = ""
-// this is the functional code
-
-for (let [lineIdx, line] of lines.entries()) {
-  let inputIdx = 0
-  let headerType = 1
-
-  //headers
-  if (line[inputIdx] == "#") {
-
-    if (line[inputIdx + 1] == "#") {
-      headerType++
-
-      if (line[inputIdx + 2] == "#") {
-        headerType++
-      }
-    }
-
-    output += '<h' + headerType + '>'
-    for (i = headerType; i < line.length; i++) {
-
-      output += line[i]
-    }
-    output += '</h' + headerType + '>'
-  }
-  // blockquotes
-  else if (line[inputIdx] == ">") {
-
-    output += '<blockquote>'
-
-    for (i = 1; i < line.length; i++) {
-      output += line[inputIdx + i]
-    }
-
-    output += '</blockquote>'
-
-  }
-  //unordered lists
-  else if (line[inputIdx] == "-") {
-
-    if (lines[lineIdx - 1] ?.[0] != "-") {
-      output += '<ul>'
-    }
-
-    output += '<li>'
-
-    for (i = 1; i < line.length; i++) {
-      output += line[inputIdx + i]
-    }
-    output += '</li>'
-
-    if (lines[lineIdx + 1] ?.[0] != "-") {
-      output += '</ul>'
-    }
-  }
-  //paragraphs
-  else {
-
-    output += '<p>'
-
-    for (i = 0; i < line.length; i++) {
-
-
-      //strong and italic tags
-      if (line[i] == "*") {
-
-
-        if (line[i + 1] == "*") {
-
-          //strong tags
-          i += 1
-
-          output += '<strong>'
-
-          let j = i + 1
-          while (line[j] != "*") {
-            output += line[j]
-            j++
-          }
-
-          output += '</strong>'
-
-          i = j + 2
-
-        } else {
-          //italic tags
-          output += '<i>'
-
-          let j = i + 1
-          while (line[j] != "*") {
-            output += line[j]
-            j++
-          }
-
-          output += '</i>'
-
-          i = j + 1
-
-        }
-      }
-
-
-      //links
-      if (line[i] == "[") {
-        let link = ""
-
-        let content = ""
-
-        //get content inside []
-        let j = i + 1
-        while (line[j] != "]") {
-
-          content += line[j]
-          j++
-        }
-
-        //get link inside ()
-        j = j + 2
-
-        while (line[j] != ")") {
-
-          link += line[j]
-          j++
-        }
-
-        i = j + 1
-
-
-        output += "<a href=" + link + "/>" + content + "</a>"
-      }
-      //images
-      if (line[i] == "!") {
-        let link = ""
-
-        let content = ""
-
-        //get content inside []
-        let j = i + 2
-        while (line[j] != "]") {
-
-          content += line[j]
-          j++
-        }
-
-        //get link inside ()
-        j = j + 2
-
-        while (line[j] != ")") {
-
-          link += line[j]
-          j++
-        }
-
-        i = j + 1
-
-        output += "<img src=" + link + "alt=" + content + "/>"
-      }
-      if (line[i]) {
-        output += line[i]
-      }
-    }
-    output += '</p>'
-  }
-}
-
-
