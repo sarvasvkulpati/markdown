@@ -27,6 +27,7 @@ h1-6
 
 // `
 
+
 let input = `
 
 # this is a header
@@ -39,31 +40,23 @@ this is another **paragraph** of text
 
 this is [   google    ](https://www.google.com)
 
-
-- so yeah
-- this is a point
-
-
 ## this is an h2
 ### this is an h3
 # another header
+
 <b>inline html</b>
-more paragraphs
+
+
 > to be or not to be a pencil - Gandhi
 
 - here's a point I'd like to make
 - and another one
 - aaaand another one
 
+
+test line
 `
 
-let testInput = "this is a *paragraph* of text"
-
-
-
-
-
-output = ""
 
 
 
@@ -71,21 +64,30 @@ output = ""
 // reader class that returns the chars in individual lines
 class Reader {
   constructor(line) {
-    this.content = line
+    this.line = line
     this.idx = 0
   }
 
-  peek(k = 1) {
+  //needs to be 0 because next() returns an value, and then increments the index. this.idx + 1 would be 1 more than the incremented index, which is 2 ahead of the current char
+  peek(k = 0) {
     return this.line[this.idx + k]
   }
 
   next() {
 
-    if (this.line[idx]) {
-      return this.line[idx++]
-    } else {
-      return 'END'
-    }
+
+    return this.line[this.idx++]
+
+  }
+
+  hasNext() {
+    return this.idx < this.line.length
+  }
+
+
+  isFirst() {
+
+    return this.idx == 1
   }
 
 }
@@ -94,8 +96,8 @@ class Reader {
 // reader class that returns the lines in the input content
 class LineReader {
 
-  constructor(content) {
-    this.lines = content.match(/[^\r\n]+/g)
+  constructor(lines) {
+    this.lines = lines
     this.idx = 0
   }
 
@@ -105,542 +107,462 @@ class LineReader {
     }
   }
 
-  peek(k = 1) {
+  peek(k = 0) {
+
     return this.lines[this.idx + k]
   }
 
   next() {
 
-    if (this.lines[this.idx]) {
 
-      return this.lines[this.idx++]
 
-    } else {
-      return 'END'
-    }
+    return this.lines[this.idx++]
 
+
+
+  }
+
+  hasNext() {
+    return this.idx < this.lines.length
   }
 
 }
 
 
 
-
-function getIndent(line) {
-
-  indentLevel = line.search(/\S|$/)
-
-
-
-  return indentLevel
-}
 
 
 
 function tokenize(content) {
-  lines = content.match(/[^\r\n]+/g)
-
-  return lines.map(line => tokenizeLine(line))
-
-
-}
+  const lineReader = new LineReader(input.match(/[^\r\n]+/g))
+  let tokenLines = []
 
 
-function tokenizeLine(line) {
 
-  let result = []
   let text = ""
 
 
-  let headerLevel = 0
-
-  let indentLevel = getIndent(line)
-
-  for (let i = 0; i < indentLevel; i++) {
-    result.push('INDENT')
-  }
-
-  line = line.trim() //remove spaces around the text (have the indent level so this is fine)
-
-  let firstChar = line[0]
 
 
+  while (lineReader.hasNext()) {
+    const nextLine = lineReader.next()
+    let tokens = []
 
+    let pushText = () => {
 
-
-  for (let i = 0; i < 6; i++) {
-    if (line[i] == "#") {
-      headerLevel += 1
-    }
-  }
-
-
-
-
-  switch (firstChar) {
-    case "#":
-      result.push('HEADER_' + headerLevel)
-      break;
-
-    case ">":
-      headerLevel += 1
-
-      result.push('BLOCKQUOTE')
-
-      break;
-
-    case "-":
-      headerLevel += 1
-
-      result.push('LIST_ITEM')
-
-      break;
-
-  }
-
-
-
-
-  //paragraph
-
-  // the funky headerLevel thing is to skip the first space if a header is present
-  for (let i = 0 + (headerLevel > 0 ? headerLevel + 1 : 0); i < line.length; i++) {
-
-    let char = line[i]
-    switch (char) {
-
-      case "*":
-
-        if (line[i + 1] == "*") {     // peek forward one
-
-          if (text.length != 0) {
-            result.push(text)
-            text = ""             //push and refresh text cache
-          }
-
-
-          result.push('STRONG')
-          i++                      //skip one
-        }
-
-        else {
-          if (text.length != 0) {
-            result.push(text)
-            text = ""             //push and refresh text cache
-          }
-
-          result.push('ITALIC')
-        }
-
-
-
-        break;
-
-      case "[":
-
-        if (text.length != 0) {
-          result.push(text)
-          text = ""             //push and refresh text cache
-        }
-
-
-        result.push('OPEN_BRACKET')
-        break;
-
-      case "]":
-        if (text.length != 0) {
-          result.push(text.trim())
-          text = ""             //push and refresh text cache
-        }
-
-
-        result.push('CLOSE_BRACKET')
-        break;
-
-      case "(":
-        result.push('OPEN_PARENTHESIS')
-        break;
-
-      case ")":
-        result.push(text)
-        text = ""             //push and refresh text cache
-        result.push('CLOSE_PARENTHESIS')
-        break;
-
-      case "!":
-        if (line[i + 1] == "[") {
-          result.push('EXCLAMATION')
-        }
-        break;
-
-
-      default:
-
-        text += char
-
-        break;
-
+      if (text.length != 0) {
+        tokens.push(text)
+        text = ""
+      }
 
     }
 
-
-  }
-  if (text.length != 0) {
-    result.push(text)
-  }
-
-  return (result)
-}
-
-
-// console.log(tokenizeLine('this is a *paragraph* of text'))
-
-tokens = tokenize(input)
-
-
-specialTokens = ['HEADER_1',
-  'HEADER_2',
-  'HEADER_3',
-  'HEADER_4',
-  'HEADER_5',
-  'HEADER_6',
-  'ITALIC',
-  'STRONG',
-  'EXCLAMATION',
-  'OPEN_BRACKET',
-  'CLOSE_BRACKET',
-  'OPEN_PARENTHESIS',
-  'CLOSE_PARENTHESIS',
-  'LIST_ITEM',
-  'BLOCKQUOTE',
-  'INDENT']
-
-
-
-function isText(string) {
-  return !specialTokens.some(token => string.includes(token))
-
-}
-
-
-
-
-
-
-
-console.log(tokens)
-
-// use logic from below but with tokens, use a switch statement for first char
-
-class Tree {
-  constructor(value) {
-    this.value = value
-    this.children = [];
-  }
-
-
-
-
-
-
-}
-
-
-
-//LINUS read this
-
-function parseLines(tokenizedLines) {
-  let output = { value: 'html', children: [] }
-
-
-
-
-
-  let listNode = { value: 'ul', children: [] }
-
-  for (let i = 0; i < tokenizedLines.length; i++) {
-
-    let node = { value: '', children: [] }
-
-
-    let line = tokenizedLines[i]
-
-
-    let styleNode = { value: '', children: [] }
-
-    let inBrackets = false
-    let inParentheses = false
-
-    let inList = false
-
-    for (let i = 0; i < line.length; i++) {
-
-      //based on the first token, what kind of node is the line?
-      if (i == 0) {
-
-
-
-
-
-        if (line[i].includes('HEADER_')) {
-          let headerLevel = line[i][line[i].length - 1]
-
-          node.value = 'h' + headerLevel
-          continue;
-        }
-
-        switch (line[i]) {
-          case 'BLOCKQUOTE':
-            node.value = 'blockquote'
-            continue;
-
-          case 'LIST_ITEM':
-            inList = true
-            continue;
-
-          default:
-            node.value = 'p'
-            break;
-        }
-
+    let pushIfFirst = (token, tokenName) => {
+      if (reader.isFirst()) {
+        tokens.push(tokenName)
+      } else {
+        text += token
       }
+    }
 
-
-      console.log(listNode.children, inList)
-      if (listNode.children.length > 0 && inList == false) {
-
-
-        output.children.push({ ...listNode })
-        listNode.children = []
-
-      }
+    reader = new Reader(nextLine)
 
 
 
-      switch (line[i]) {
-        case 'ITALIC':
 
-          if (styleNode.value == 'i') {
 
-            node.children.push({ ...styleNode })
-            styleNode = { value: '', children: [] }
+    while (reader.hasNext()) {
+      const next = reader.next()
 
+
+
+
+
+      switch (next) {
+
+        case '-':
+          pushIfFirst(next, 'LIST_ITEM')
+          break;
+
+        case '>':
+          pushIfFirst(next, 'BLOCKQUOTE')
+          break;
+
+        case '#':
+          headerLevel = 1
+          for (let i = 0; i < 6; i++) {
+            if (reader.peek(i) == '#') {
+              headerLevel++
+            }
+          }
+
+          pushIfFirst(next, 'HEADER_' + headerLevel)
+
+          for (let i = 0; i < headerLevel; i++) {
+            reader.next()
+          }
+          break;
+
+
+        case "*":
+          pushText()
+
+          if (reader.peek() == "*") {
+            reader.next()
+            tokens.push('STRONG')
           } else {
-            styleNode.value = 'i'
-
+            tokens.push('ITALIC')
           }
-
           break;
 
-        case 'STRONG':
 
-          if (styleNode.value == 'strong') {
-            node.children.push({ ...styleNode })
-            styleNode = { value: '', children: [] }
+        case "[":
+          pushText()
+          tokens.push('OPEN_BRACKET')
+          break;
 
-          } else {
-            styleNode.value = 'strong'
+        case "]":
+          pushText()
+          tokens.push('CLOSE_BRACKET')
+          break;
 
+        case "(":
+          pushText()
+          tokens.push('OPEN_PARENTHESIS')
+          break;
+
+        case ")":
+          pushText()
+          tokens.push('CLOSE_PARENTHESIS')
+          break;
+
+        case "!":
+          pushText()
+          if (reader.peek() == "[") {
+            tokens.push('EXCLAMATION')
           }
-
           break;
 
-
-        case 'EXCLAMATION':
-
-          styleNode.value = 'img'
-
-
+        case "\\":
+          text += reader.next()
           break;
-
-
-        case 'OPEN_BRACKET':
-          inBrackets = true
-          if (styleNode.value != 'img') {
-            styleNode.value = 'a'
-          }
-
-          break;
-
-        case 'CLOSE_BRACKET':
-          inBrackets = false
-          break;
-
-        case 'OPEN_PARENTHESIS':
-          inParentheses = true
-          break;
-
-        case 'CLOSE_PARENTHESIS':
-          inParentheses = false
-          node.children.push({ ...styleNode })
-          styleNode = { value: '', children: [] }
-
-          break;
-
 
         default:
-
-          if (styleNode.value != '') {
-
-            switch (styleNode.value) {
-              case 'img':
-
-                if (inBrackets) {
-                  styleNode.alt = line[i]
-
-                } else if (inParentheses) {
-                  styleNode.src = line[i]
-
-                }
-                break;
-
-              case 'a':
-                if (inBrackets) {
-                  styleNode.children = line[i]
-                } else if (inParentheses) {
-                  styleNode.href = line[i]
-                }
-
-                break;
-
-
-
-
-
-              default:
-                styleNode.children.push(line[i])
-                break;
-            }
-          } else if (inList) {
-
-
-
-            listNode.children.push(line[i])
-            inList = false
-            continue;
-
-          } else {
-            node.children.push(line[i])
-          }
-
+          text += next
           break;
+
+      }
+    }
+
+    pushText()
+    tokenLines.push(tokens)
+  }
+
+  return tokenLines
+}
+
+
+tokenLines = tokenize(input)
+
+
+console.log(tokenLines)
+
+
+class Parser {
+  constructor(tokenLines) {
+    this.tokenLineReader = new LineReader(tokenLines)
+    this.tokenReader = null
+  }
+
+
+
+  execute() {
+    const nodes = []
+
+    while (this.tokenLineReader.hasNext()) {
+
+      this.tokenReader = new Reader(this.tokenLineReader.next())
+
+
+
+      nodes.push(this.parseLine())
+
+
+    }
+
+
+
+
+    return {
+      node: 'root',
+      children: nodes
+    }
+
+  }
+
+
+
+
+  parseLine() {
+
+    while (this.tokenReader.hasNext()) {
+
+      const peekNext = this.tokenReader.peek()
+
+      if (peekNext.includes('HEADER_')) {
+
+
+        return this.parseHeader()
+      } else if (peekNext == 'BLOCKQUOTE') {
+        return this.parseBlockquote()
+      } else if (peekNext == 'LIST_ITEM') {
+
+        return this.parseList()
+
+      } else {
+
+        return this.parsePara()
+      }
+    }
+
+  }
+
+  parseList() {
+
+    let listItems = []
+
+
+    listItems.push(this.parseListItem())
+
+    while (this.tokenLineReader.hasNext() && this.tokenLineReader.peek()[0] == 'LIST_ITEM') {
+
+      this.tokenReader = new Reader(this.tokenLineReader.next())
+
+      if (this.tokenReader.peek() == 'LIST_ITEM') {
+
+        listItems.push(this.parseListItem())
       }
     }
 
 
+    return {
+      node: 'element',
+      tag: 'ul',
+      children: listItems
+    }
+  }
 
+  parseListItem() {
+    this.tokenReader.next() //skip LIST_ITEM
+    let text = this.parseText()
 
-    if (listNode.children.length == 0) {
-      output.children.push(node)
+    return {
+      node: 'element',
+      tag: 'li',
+      children: [text]
     }
 
+  }
 
+  parseImage() {
+    this.tokenReader.next() // skip EXCLAMATION
+    this.tokenReader.next() // skip OPEN_BRACKET
 
+    let alt = this.tokenReader.next()
 
+    this.tokenReader.next() // skip CLOSE_BRACKET
+    this.tokenReader.next() // skip OPEN_PARENTHESIS
+
+    let src = this.tokenReader.next()
+
+    this.tokenReader.next() // skip CLOSE_PARENTHESIS
+
+    return {
+      node: 'element',
+      tag: 'img',
+      attributes: {
+        src: src,
+        alt: alt
+      }
+    }
 
   }
 
-  if (listNode.children.length > 0) {
+  parseHeader() {
+    let next = this.tokenReader.next()
+    let headerLevel = next[next.length - 1]
 
-
-    output.children.push({ ...listNode })
-    listNode.children = []
-
+    return {
+      node: 'element',
+      tag: 'h' + headerLevel,
+      children: [this.parseText()]
+    }
   }
 
-  console.log(JSON.stringify(output, null, 2))
+  parsePara() {
+
+    let node = {
+      node: 'element',
+      tag: 'p',
+      children: []
+    }
+
+    while (this.tokenReader.hasNext()) {
+      let peekNext = this.tokenReader.peek()
+      console.log(peekNext)
+
+
+      if (peekNext == 'ITALIC') {
+        node.children.push(this.parseItalic())
+      } else if (peekNext == 'STRONG') {
+        node.children.push(this.parseStrong())
+      } else if (peekNext == 'EXCLAMATION') {
+        node.children.push(this.parseImage())
+      } else if (peekNext == 'OPEN_BRACKET') {
+        node.children.push(this.parseHyperlink())
+      } else {
+        node.children.push(this.parseText())
+      }
+
+    }
+    return node
+  }
+
+  parseBlockquote() {
+    this.tokenReader.next() // skip BLOCKQUOTE
+    let text = this.parseText()
+
+    return {
+      node: 'element',
+      tag: 'blockquote',
+      children: [text]
+    }
+  }
+
+  parseHyperlink() {
+    this.tokenReader.next() // skip OPEN_BRACKET
+
+    let text = this.parseText()
+
+    this.tokenReader.next() // skip CLOSE_BRACKET
+    this.tokenReader.next() // skip OPEN_PARENTHESIS
+
+    let href = this.tokenReader.next()
+
+    this.tokenReader.next() // skip CLOSE_PARENTHESIS
+
+
+    return {
+      node: 'element',
+      tag: 'a',
+      attributes: { href: href },
+      children: [text]
+    }
+  }
+
+
+
+  parseItalic() {
+
+    this.tokenReader.next() //skip the ITALIC delimiter
+    let text = this.parseText()
+    this.tokenReader.next() //skip the ITALIC delimiter
+
+    return {
+      node: 'element',
+      tag: 'i',
+      children: [text]
+    }
+  }
+
+
+  parseStrong() {
+
+    this.tokenReader.next() //skip the ITALIC delimiter
+    let text = this.parseText()
+    this.tokenReader.next() //skip the ITALIC delimiter
+
+    return {
+      node: 'element',
+      tag: 'strong',
+      children: [text]
+    }
+  }
+
+
+
+  //returns a single textNode
+  parseText() {
+    let next = this.tokenReader.next()
+
+
+    return {
+      node: 'text',
+      text: next
+    }
+
+  }
 
 }
 
-parseLines(tokens)
 
 
 
 
+let parser = new Parser(tokenLines)
+
+let nodes = parser.execute()
+
+
+console.log(JSON.stringify(nodes, null, 3))
 
 
 
+function parseDomNodes(tree) {
 
+  let children = ''
+  if (tree.children) {
+   
+    children = tree.children.map(child => parseDomNodes(child)).join('')
+  }
 
-// function makeTree(tokens, prevTree = null, prevDelimiter = "", isPrevText = false) {
+  let attributes = ''
+  if (tree.attributes) {
+    attributes = Object.keys(tree.attributes).map((key) => {
+      let value = tree.attributes[key]
 
+      return `${key} = '${value}'`
+    }).join(' ')
+  }
 
-//   if (isPrevText) {
-//     root.children.push(prevTree)
-//   }
+  if (tree.node == 'element') {
+    let tag = tree.tag
+    let open = `<${tag} ${attributes}>`
+    let close = `</${tag}>`
 
-//   switch (tokens[0]) {
-
-//     case "HEADER_1":
-//       let headerTree = new Tree('HEADER_1')
-
-
-//       tokens.shift()
-//       makeTree(tokens, headerTree, '', false )
-//       break;
-
-//     default:
-//       if (prevTree) {
-//         prevTree.children.push(tokens[0])
-
-
-//         tokens.shift()
-
-//         makeTree(tokens, prevTree, '', true)
-//       } else {
-
-
-//         let pTree = new Tree('paragraph')
-//         pTree.children.push(tokens[0])
-
-
-//       }
-
-//   }
-
-
-
-// }
-
-
-function makeTree(tokens) {
-  let root = new Tree('html')
-
-  let i = 0
-
-  while (tokens[i + 1]) {
-    currentToken = tokens[i]
-    nextToken = tokens[i + 1]
-
-
-    switch (currentToken) {
-      case 'HEADER_1':
-        let headerTree = new Tree('HEADER_1')
-        headerTree.children.push(nextToken)
-        root.children.push(headerTree)
-        i++
-        break;
-
-      default:
-        let pTree = new Tree('paragraph')
-
-        pTree.children.push(currentToken)
-
-        if (isText(nextToken)) {
-          root.children.push(pTree)
-        }
-
-    }
-
-
+    return open + children + close
   }
 
 
-  return root
+  if (tree.node == 'text') {
+    return tree.text
+  }
+
+
+
+
+  if (tree.node == 'root') {
+    return children
+  }
 }
 
 
 
+console.log(parseDomNodes(nodes))
+
+
+
+document.getElementById('root').innerHTML = parseDomNodes(nodes)
 
 
 
@@ -653,8 +575,9 @@ function makeTree(tokens) {
 
 
 
+lines = input.match(/[^\r\n]+/g)
 
-
+let output = ""
 // this is the functional code
 
 for (let [lineIdx, line] of lines.entries()) {
@@ -820,65 +743,3 @@ for (let [lineIdx, line] of lines.entries()) {
 }
 
 
-document.getElementById('root').innerHTML = output
-
-// document.getElementById('root').innerHTML = newOutput
-
-
-
-
-
-
-
-
-// good parsers are recursive descent parsers, the rest is BS
-
-
-
-
-/*
-Reader
-
-input: entire text string
-outputs: list of tokens
-
-
-reader just has the string and where we are in the string
-
-the tokenizer 
-
-
-tokens are what each 'thing' is 
-
-
-in lisp a reader is a parser that's available as a function of the language
-*/
-
-
-
-
-/*
-Tokenizer and lexer are the same thing 
-
-
-*/
-
-
-/*
-
-text -> tokens -> syntax tree
-
-*/
-
-
-
-
-/*
-in md, every line is fairly self contained (header will stay to one line)
-
-so you can technically parse line by line, except for lists
-
-
-LineReader allows you to check if something is a line
-
-*/
