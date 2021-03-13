@@ -10,6 +10,7 @@ class Reader {
 
   //needs to be 0 because next() returns an value, and then increments the index. this.idx + 1 would be 1 more than the incremented index, which is 2 ahead of the current char
   peek(k = 0) {
+    
     return this.line[this.idx + k]
   }
 
@@ -189,6 +190,7 @@ function tokenize(content) {
 
 
         case "*":
+          
           pushText()
 
           if (reader.peek() == "*") {
@@ -233,9 +235,12 @@ function tokenize(content) {
           break;
 
         case "!":
-          pushText()
+          
           if (reader.peek() == "[") {
+            pushText()
             tokens.push('EXCLAMATION')
+          } else {
+            text += next
           }
           break;
 
@@ -293,9 +298,6 @@ class Parser {
 
   }
 
-
-
-
   parseLine() {
 
     while (this.tokenReader.hasNext()) {
@@ -344,11 +346,13 @@ class Parser {
         listItems.push(this.parseList())
       } else if (indentLevel < firstIndentLevel) {
         this.tokenLineReader.backtrack()
-        return {
+
+        node.children.push({
           node: 'element',
           tag: 'ul',
           children: listItems
-        }
+        })
+        return node
       } else {
         listItems.push(node)
       }
@@ -472,14 +476,12 @@ class Parser {
     }
   }
 
-
-
   parseItalic() {
 
     this.tokenReader.next() //skip the ITALIC delimiter
 
     let children = []
-    while (this.tokenReader.peek() != 'ITALIC') {
+    while (this.tokenReader.hasNext() && this.tokenReader.peek() != 'ITALIC') {
       children = this.parseTextLine('ITALIC')
     }
 
@@ -494,13 +496,12 @@ class Parser {
     }
   }
 
-
   parseStrong() {
 
     this.tokenReader.next() //skip the STRONG delimiter
 
     let children = []
-    while (this.tokenReader.peek() != 'STRONG') {
+    while (this.tokenReader.hasNext() && this.tokenReader.peek() != 'STRONG') {
       children = this.parseTextLine('STRONG')
     }
 
@@ -515,8 +516,6 @@ class Parser {
     }
   }
 
-
-
   //returns a single textNode
   parseTextNode() {
     let next = this.tokenReader.next()
@@ -525,7 +524,6 @@ class Parser {
       text: next
     }
   }
-
 
   parseTextLine(until = "") {
 

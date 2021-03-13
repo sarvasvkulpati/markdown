@@ -1,20 +1,4 @@
-let input = document.getElementById('input')
-let parsedTextBox = document.getElementById('root')
-input.addEventListener('keyup', (e) => handleInputChange(e))
-
-
-function handleInputChange(e) {
-
-  let markdown = e.target.value
-
-  parsedTextBox.innerHTML = toHTML(markdown)
-}
-
-
-
-
-
-let placeholder = `# This is a markdown parser built from scratch in JS 
+# This is a markdown parser built from scratch in JS 
 
 [Github repo](https://github.com/sarvasvkulpati/markdown) [Tweet thread](https://twitter.com/SarvasvKulpati/status/1365630258276306947)
 
@@ -72,7 +56,3 @@ Paragraphs with *italics*, **bold** and ** *nested* emphasis *
 
 
 \\# <- escaping characters
-`
-
-input.innerHTML = placeholder
-parsedTextBox.innerHTML = toHTML(placeholder)
